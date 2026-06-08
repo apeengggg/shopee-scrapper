@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: lead_maps_agent_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lead_maps_agent
+    ports:
+      - "5432:5432"
+    volumes:
+      - lead_maps_agent_pg:/var/lib/postgresql/data
+
+volumes:
+  lead_maps_agent_pg:

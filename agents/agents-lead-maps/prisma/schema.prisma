@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStatus {
+  ready
+  candidate
+  ignored
+}
+
+enum SearchRunStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+model Lead {
+  id             String     @id @default(cuid())
+  osmType        String
+  osmId          BigInt
+  name           String
+  category       String
+  osmTags        Json
+  businessType   String?
+  phone          String?
+  website        String?
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  source         String     @default("openstreetmap")
+  status         LeadStatus
+  notes          String?
+  firstSeenAt    DateTime   @default(now())
+  lastSeenAt     DateTime   @updatedAt
+  searchRunLeads SearchRunLead[]
+
+  @@unique([osmType, osmId])
+  @@index([status])
+  @@index([category])
+}
+
+model SearchRun {
+  id           String          @id @default(cuid())
+  location     String
+  category     String
+  radiusMeters Int             @default(2500)
+  status       SearchRunStatus @default(queued)
+  error        String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  campaignId   String?
+  campaign     Campaign?       @relation(fields: [campaignId], references: [id])
+  leads        SearchRunLead[]
+}
+
+model SearchRunLead {
+  searchRunId String
+  leadId      String
+  createdAt   DateTime @default(now())
+  searchRun   SearchRun @relation(fields: [searchRunId], references: [id], onDelete: Cascade)
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@id([searchRunId, leadId])
+}
+
+model Campaign {
+  id              String      @id @default(cuid())
+  name            String
+  location        String
+  category        String
+  radiusMeters    Int         @default(2500)
+  scheduleMinutes Int         @default(1440)
+  active          Boolean     @default(true)
+  lastRunAt       DateTime?
+  nextRunAt       DateTime
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  searchRuns      SearchRun[]
+
+  @@index([active, nextRunAt])
+}
+
+model GeoCache {
+  query     String   @id
+  latitude  Float
+  longitude Float
+  raw       Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
