@@ -48,6 +48,8 @@ Dashboard tersedia di `http://localhost:3001`.
 
 ## Catatan
 
-- Generator v1 memakai template deterministik, tanpa API key AI.
+- Generator memakai OpenAI API jika key tersedia dari Console atau `.env`, lalu fallback ke template deterministik jika gagal.
+- Preview publik tersedia di `/p/[slug]` setelah draft dipublish.
+- Foto landing page memakai template lokal dari `public/template-photos`.
 - App ini tidak mengubah database Lead Maps Agent.
 - Data kontak, alamat, dan kategori mengikuti data lead yang diimpor. Generator tidak membuat nomor telepon, alamat, testimonial, harga, atau jam buka palsu.

@@ -1,5 +1,5 @@
 import { apiError, json } from "@/lib/http";
-import { generateLandingDraft } from "@/lib/landing-generator";
+import { generateDraftContent } from "@/lib/openai-generator";
 import { prisma } from "@/lib/prisma";
 import { createDraftInput, draftListInput } from "@/lib/validators";
 
@@ -42,7 +42,11 @@ export async function POST(request: Request) {
     const lead = await prisma.importedLead.findUniqueOrThrow({
       where: { id: input.importedLeadId }
     });
-    const generated = generateLandingDraft(lead);
+    const generated = await generateDraftContent({
+      lead,
+      mode: input.mode,
+      apiKey: request.headers.get("x-openai-api-key")
+    });
 
     const draft = await prisma.landingDraft.create({
       data: {

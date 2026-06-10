@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Local business storefront">
+  <rect width="1200" height="720" fill="#eef2f6"/>
+  <rect x="110" y="180" width="980" height="430" rx="18" fill="#ffffff"/>
+  <rect x="160" y="250" width="300" height="360" fill="#12312a"/>
+  <rect x="520" y="260" width="500" height="220" rx="8" fill="#dbe7df"/>
+  <rect x="560" y="510" width="420" height="36" rx="18" fill="#f2b84b"/>
+  <rect x="170" y="210" width="850" height="70" rx="8" fill="#0f766e"/>
+  <circle cx="250" cy="430" r="64" fill="#f2b84b"/>
+  <rect x="660" y="328" width="220" height="34" rx="17" fill="#12312a"/>
+</svg>

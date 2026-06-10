@@ -63,6 +63,12 @@ model LandingDraft {
   publishedAt       DateTime?
   slug              String?      @unique
   previewPath       String?
+  generationProvider String      @default("template")
+  generationModel    String?
+  generationPromptVersion String @default("landing-v1")
+  generationStatus   String      @default("completed")
+  generationError    String?
+  templatePhotoKey   String      @default("generic")
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   importedLead      ImportedLead @relation(fields: [importedLeadId], references: [id], onDelete: Cascade)

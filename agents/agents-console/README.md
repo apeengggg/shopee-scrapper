@@ -29,4 +29,6 @@ Change these values in `.env` before seeding if needed.
 - Monitors agent health endpoints.
 - Reads landing-page drafts through the Landing Page Agent API.
 - Publishes and unpublishes landing-page previews through the Landing Page Agent API.
+- Stores OpenAI API keys encrypted when `CREDENTIAL_ENCRYPTION_KEY` is configured.
+- Can trigger OpenAI-backed landing-page regeneration without exposing the API key to the browser.
 - Does not start or stop agents directly; use the root runner.

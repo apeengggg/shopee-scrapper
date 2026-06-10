@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Clean dental clinic treatment room">
+  <rect width="1200" height="720" fill="#edf7f2"/>
+  <rect x="120" y="130" width="960" height="480" rx="20" fill="#ffffff"/>
+  <rect x="210" y="220" width="330" height="230" rx="34" fill="#d9eaf7"/>
+  <rect x="292" y="388" width="380" height="52" rx="26" fill="#0f766e"/>
+  <circle cx="785" cy="310" r="88" fill="#f2b84b"/>
+  <path d="M755 285c26-56 86-22 61 34-10 23-18 42-31 42s-17-20-30-42c-9-15-8-24 0-34z" fill="#ffffff"/>
+  <rect x="720" y="440" width="220" height="30" rx="15" fill="#12312a"/>
+</svg>

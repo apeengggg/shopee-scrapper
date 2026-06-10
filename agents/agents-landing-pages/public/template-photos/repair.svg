@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Local repair shop workspace">
+  <rect width="1200" height="720" fill="#eef2f6"/>
+  <rect x="130" y="140" width="940" height="450" rx="18" fill="#ffffff"/>
+  <rect x="210" y="440" width="780" height="70" rx="12" fill="#12312a"/>
+  <circle cx="365" cy="345" r="92" fill="#d9e0e8"/>
+  <circle cx="365" cy="345" r="42" fill="#12312a"/>
+  <path d="M680 270l180 180-42 42-180-180z" fill="#f2b84b"/>
+  <rect x="610" y="250" width="130" height="42" rx="21" fill="#0f766e"/>
+  <rect x="805" y="445" width="140" height="34" rx="17" fill="#d9e0e8"/>
+</svg>

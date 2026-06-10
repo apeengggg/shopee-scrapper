@@ -22,6 +22,7 @@ This folder contains two local agents that work together:
 4. Import leads from `http://localhost:3001/api/leads`.
 5. Generate and edit bilingual landing-page drafts.
 6. Publish successful drafts from the console to create preview URLs like `http://localhost:3002/p/example-business`.
+7. Register an OpenAI API key in the Console to generate richer landing-page drafts; local template generation remains the fallback.
 
 The Landing Page Agent stores imported copies in its own database and does not modify the Lead Maps database.
 
@@ -77,6 +78,7 @@ AGENTS_CONFIG_PATH="../agents.config.json"
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="ChangeMe123!"
 SESSION_SECRET="change-this-local-secret"
+CREDENTIAL_ENCRYPTION_KEY=""
 ```
 
 ## Database Setup
@@ -182,6 +184,8 @@ Use this app to monitor configured agents and manage landing-page publishing:
 - authenticated login,
 - landing-page list from the Landing Page Agent API,
 - publish/unpublish controls,
+- encrypted OpenAI API key settings,
+- OpenAI-backed regeneration controls,
 - preview links and embedded previews.
 
 Useful commands:

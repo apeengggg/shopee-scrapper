@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getTemplatePhoto } from "@/lib/template-photos";
 
 export default async function PublishedLandingPage({
   params
@@ -13,24 +14,28 @@ export default async function PublishedLandingPage({
   });
 
   if (!draft?.published) notFound();
+  const photo = getTemplatePhoto(draft.templatePhotoKey);
 
   return (
     <main className="min-h-screen bg-[#f7f8f3] text-[#172017]">
       <section className="bg-[#12312a] px-6 py-16 text-white md:px-12">
-        <div className="mx-auto max-w-5xl">
-          <div className="text-sm font-medium text-[#b9d7c9]">{draft.importedLead.category}</div>
-          <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-normal md:text-6xl">
-            {draft.heroHeadlineId}
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-[#d7e8df]">
-            {draft.heroSubheadlineId}
-          </p>
-          <a
-            href={draft.importedLead.phone ? `tel:${draft.importedLead.phone}` : "#contact"}
-            className="mt-8 inline-flex rounded bg-[#f2b84b] px-5 py-3 text-sm font-semibold text-[#172017]"
-          >
-            {draft.ctaId}
-          </a>
+        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+          <div>
+            <div className="text-sm font-medium text-[#b9d7c9]">{draft.importedLead.category}</div>
+            <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-normal md:text-6xl">
+              {draft.heroHeadlineId}
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#d7e8df]">
+              {draft.heroSubheadlineId}
+            </p>
+            <a
+              href={draft.importedLead.phone ? `tel:${draft.importedLead.phone}` : "#contact"}
+              className="mt-8 inline-flex rounded bg-[#f2b84b] px-5 py-3 text-sm font-semibold text-[#172017]"
+            >
+              {draft.ctaId}
+            </a>
+          </div>
+          <img src={photo.path} alt={photo.alt} className="aspect-[5/3] w-full rounded-lg object-cover" />
         </div>
       </section>
 

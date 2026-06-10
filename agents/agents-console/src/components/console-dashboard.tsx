@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExternalLink, LogOut, RadioTower, RefreshCw, Rocket, Search, ShieldCheck } from "lucide-react";
+import { ExternalLink, KeyRound, LogOut, RadioTower, RefreshCw, Rocket, Search, ShieldCheck, Wand2 } from "lucide-react";
 
 type AgentHealth = {
   id: string;
@@ -24,14 +24,29 @@ type LandingDraft = {
   previewUrl?: string | null;
   heroHeadlineId: string;
   descriptionId: string;
+  generationProvider?: string;
+  generationModel?: string | null;
+  generationStatus?: string;
+  generationError?: string | null;
+  templatePhotoKey?: string;
   updatedAt: string;
   importedLead: {
+    id: string;
     name: string;
     category: string;
     phone?: string | null;
     address?: string | null;
   };
 };
+
+type OpenAiCredential = {
+  provider: string;
+  label: string;
+  active: boolean;
+  lastTestedAt?: string | null;
+  lastTestStatus?: string | null;
+  updatedAt: string;
+} | null;
 
 export function ConsoleDashboard({
   user
@@ -44,6 +59,8 @@ export function ConsoleDashboard({
   const [status, setStatus] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
+  const [credential, setCredential] = useState<OpenAiCredential>(null);
+  const [apiKey, setApiKey] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -69,6 +86,9 @@ export function ConsoleDashboard({
 
     setAgents(agentsData.agents ?? []);
     setDrafts(landingData.drafts ?? []);
+    const credentialResponse = await fetch("/api/settings/openai");
+    const credentialData = await credentialResponse.json();
+    if (credentialResponse.ok) setCredential(credentialData.credential ?? null);
   }, [published, query, status]);
 
   useEffect(() => {
@@ -90,6 +110,63 @@ export function ConsoleDashboard({
       await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : `${action} failed`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveOpenAiKey() {
+    setLoading(true);
+    setMessage("Saving OpenAI key...");
+    try {
+      const response = await fetch("/api/settings/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey, label: "OpenAI" })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to save OpenAI key");
+      setCredential(data.credential);
+      setApiKey("");
+      setMessage("OpenAI key saved and tested.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to save OpenAI key");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteOpenAiKey() {
+    setLoading(true);
+    setMessage("Removing OpenAI key...");
+    try {
+      const response = await fetch("/api/settings/openai", { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to remove OpenAI key");
+      setCredential(null);
+      setMessage("OpenAI key removed.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to remove OpenAI key");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function regenerateWithOpenAi(draftId: string) {
+    setLoading(true);
+    setMessage("Generating landing page with OpenAI...");
+    try {
+      const response = await fetch("/api/landing-pages/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Generation failed");
+      setMessage("Landing page regenerated.");
+      await refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Generation failed");
     } finally {
       setLoading(false);
     }
@@ -168,6 +245,47 @@ export function ConsoleDashboard({
               </div>
             </section>
 
+            <section className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-center gap-2">
+                <KeyRound size={18} />
+                <h2 className="text-lg font-semibold">OpenAI</h2>
+              </div>
+              <div className="mt-3 rounded border border-line bg-field px-3 py-2 text-sm text-slate-700">
+                {credential?.active ? (
+                  <span>
+                    Key saved · test: {credential.lastTestStatus ?? "not tested"}
+                  </span>
+                ) : (
+                  <span>No API key saved. Generation will use Landing Pages fallback if available.</span>
+                )}
+              </div>
+              <input
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                type="password"
+                placeholder="Paste OpenAI API key"
+                className="mt-3 h-10 w-full rounded border border-line bg-field px-3 text-sm"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={loading || !apiKey.trim()}
+                  onClick={saveOpenAiKey}
+                  className="h-10 rounded bg-action px-4 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  Save Key
+                </button>
+                <button
+                  type="button"
+                  disabled={loading || !credential}
+                  onClick={deleteOpenAiKey}
+                  className="h-10 rounded border border-line bg-white px-4 text-sm font-semibold disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              </div>
+            </section>
+
             {message ? (
               <div className="rounded border border-line bg-white px-4 py-3 text-sm text-slate-700">
                 {message}
@@ -217,6 +335,9 @@ export function ConsoleDashboard({
                       <div>
                         <div className="font-semibold">{draft.importedLead.name}</div>
                         <div className="mt-1 text-xs text-slate-500">{draft.importedLead.category}</div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {draft.generationProvider ?? "template"} · {draft.generationStatus ?? "completed"}
+                        </div>
                       </div>
                       <span className={`rounded px-2 py-1 text-xs font-semibold ${draft.published ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>
                         {draft.published ? "Published" : "Draft"}
@@ -235,8 +356,21 @@ export function ConsoleDashboard({
                       <div className="text-xs uppercase text-slate-500">{selectedDraft.status}</div>
                       <h3 className="mt-1 text-2xl font-semibold">{selectedDraft.heroHeadlineId}</h3>
                       <p className="mt-2 text-sm leading-6 text-slate-600">{selectedDraft.descriptionId}</p>
+                      <div className="mt-3 text-xs text-slate-500">
+                        Generated by {selectedDraft.generationProvider ?? "template"}
+                        {selectedDraft.generationModel ? ` (${selectedDraft.generationModel})` : ""} · {selectedDraft.generationStatus ?? "completed"}
+                        {selectedDraft.generationError ? ` · fallback: ${selectedDraft.generationError}` : ""}
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <button
+                        disabled={loading}
+                        onClick={() => regenerateWithOpenAi(selectedDraft.id)}
+                        className="inline-flex h-10 items-center gap-2 rounded border border-line bg-white px-4 text-sm font-semibold disabled:opacity-50"
+                      >
+                        <Wand2 size={15} />
+                        Generate AI
+                      </button>
                       {selectedDraft.published ? (
                         <button disabled={loading} onClick={() => mutate(selectedDraft.id, "unpublish")} className="h-10 rounded border border-line bg-white px-4 text-sm font-semibold disabled:opacity-50">
                           Unpublish

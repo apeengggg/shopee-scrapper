@@ -10,3 +10,8 @@ export const landingListInput = z.object({
   published: z.enum(["true", "false", "all"]).default("all"),
   q: z.string().trim().optional()
 });
+
+export const openAiCredentialInput = z.object({
+  apiKey: z.string().trim().min(10),
+  label: z.string().trim().min(2).default("OpenAI")
+});

@@ -6,5 +6,6 @@ export const appConfig = {
   landingPagesPublicUrl:
     process.env.LANDING_PAGES_PUBLIC_URL?.replace(/\/$/, "") ?? "http://localhost:3002",
   agentsConfigPath: process.env.AGENTS_CONFIG_PATH ?? "../agents.config.json",
-  sessionSecret: process.env.SESSION_SECRET ?? "change-this-local-secret"
+  sessionSecret: process.env.SESSION_SECRET ?? "change-this-local-secret",
+  credentialEncryptionKey: process.env.CREDENTIAL_ENCRYPTION_KEY
 };

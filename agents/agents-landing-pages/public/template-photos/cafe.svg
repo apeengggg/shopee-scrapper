@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Cafe counter with warm lighting">
+  <rect width="1200" height="720" fill="#f2ede4"/>
+  <rect x="120" y="160" width="960" height="420" rx="20" fill="#ffffff"/>
+  <rect x="180" y="420" width="840" height="90" rx="12" fill="#12312a"/>
+  <circle cx="360" cy="330" r="88" fill="#f2b84b"/>
+  <path d="M310 315h95v46a48 48 0 0 1-95 0z" fill="#ffffff"/>
+  <path d="M405 328h35a26 26 0 0 1 0 52h-35z" fill="none" stroke="#ffffff" stroke-width="18"/>
+  <rect x="620" y="280" width="270" height="34" rx="17" fill="#0f766e"/>
+  <rect x="620" y="340" width="340" height="30" rx="15" fill="#d9e0e8"/>
+</svg>

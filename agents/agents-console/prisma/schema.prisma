@@ -34,3 +34,17 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
 }
+
+model IntegrationCredential {
+  id          String   @id @default(cuid())
+  provider    String   @unique
+  label       String
+  secretCiphertext String
+  secretIv    String
+  secretTag   String
+  active      Boolean  @default(true)
+  lastTestedAt DateTime?
+  lastTestStatus String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

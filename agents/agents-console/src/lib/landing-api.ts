@@ -37,6 +37,48 @@ export async function unpublishLandingDraft(id: string) {
   return mutateDraft(id, "unpublish");
 }
 
+export async function generateLandingDraft({
+  importedLeadId,
+  apiKey
+}: {
+  importedLeadId: string;
+  apiKey?: string | null;
+}) {
+  const response = await fetch(`${appConfig.landingPagesApiBase}/api/landing-drafts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(apiKey ? { "x-openai-api-key": apiKey } : {})
+    },
+    body: JSON.stringify({ importedLeadId, mode: "openai" }),
+    cache: "no-store"
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Failed to generate draft");
+  return data;
+}
+
+export async function regenerateLandingDraft({
+  draftId,
+  apiKey
+}: {
+  draftId: string;
+  apiKey?: string | null;
+}) {
+  const response = await fetch(`${appConfig.landingPagesApiBase}/api/landing-drafts/${draftId}/regenerate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(apiKey ? { "x-openai-api-key": apiKey } : {})
+    },
+    body: JSON.stringify({ mode: "openai" }),
+    cache: "no-store"
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Failed to regenerate draft");
+  return data;
+}
+
 export function previewUrl(path?: string | null) {
   return path ? `${appConfig.landingPagesPublicUrl}${path}` : null;
 }

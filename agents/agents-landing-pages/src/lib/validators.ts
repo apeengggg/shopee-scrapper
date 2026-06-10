@@ -5,7 +5,12 @@ export const importLeadsInput = z.object({
 });
 
 export const createDraftInput = z.object({
-  importedLeadId: z.string().min(1)
+  importedLeadId: z.string().min(1),
+  mode: z.enum(["template", "openai"]).default("template")
+});
+
+export const regenerateDraftInput = z.object({
+  mode: z.enum(["template", "openai"]).default("openai")
 });
 
 const stringArray = z.array(z.string().trim().min(1)).min(1).max(8);
@@ -25,7 +30,8 @@ export const draftPatchInput = z.object({
   ctaId: z.string().trim().min(1).optional(),
   ctaEn: z.string().trim().min(1).optional(),
   contactSectionId: z.string().trim().min(1).optional(),
-  contactSectionEn: z.string().trim().min(1).optional()
+  contactSectionEn: z.string().trim().min(1).optional(),
+  templatePhotoKey: z.string().trim().min(1).optional()
 });
 
 export const draftListInput = z.object({
