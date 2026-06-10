@@ -14,13 +14,16 @@ Use this guide before changing an existing feature, changing an agent, or creati
 ## Changing Existing Features
 
 - Keep ownership boundaries. Console calls Landing Pages through APIs; it must not read the Landing Pages database directly.
+- Console may orchestrate multi-agent workflows, including lead-to-landing automation, but the worker agents still own their data and behavior.
 - Keep Landing Pages public preview routes unauthenticated for customers.
 - Store OpenAI API keys only in `.env` or encrypted Console database records, and never return raw keys to browser clients.
 - Treat "Codex generation" in this project as OpenAI API model generation using the key registered in Console, not direct customer-page file edits by the Codex coding agent.
 - Use structured JSON generation and validation before saving generated landing-page content.
 - Use deterministic template generation as fallback when OpenAI is unavailable.
 - Use local template photos for landing pages unless the user explicitly asks for generated or remote images.
-- Group commits by subsystem or documentation area.
+- After completing the implemented plan and required verification, commit the finished work unless the user explicitly says not to commit.
+- Group commits by feature and subsystem; keep unrelated feature work in separate commits.
+- For automated pipelines, store run history and user-configurable defaults in Console, then call Lead Maps and Landing Pages APIs.
 
 ## Changing Existing Agents
 
@@ -50,3 +53,10 @@ Use this guide before changing an existing feature, changing an agent, or creati
   - `npx.cmd tsc --noEmit --incremental false`
 
 Document any command that cannot be run or any known local limitation in the per-prompt continuity log.
+
+## Commit Rules
+
+- Commit only after the implemented plan is complete and verification has been run or documented.
+- Group commits by feature and subsystem, not by prompt if one prompt touches unrelated areas.
+- Use focused commit messages that name the affected feature or subsystem.
+- Do not include `.env`, API keys, generated logs, `.next`, `node_modules`, coverage, or `*.tsbuildinfo`.

@@ -19,7 +19,8 @@
 - Do not commit `.env`, API keys, generated logs, `.next`, `node_modules`, coverage, or `*.tsbuildinfo`.
 - Prefer existing Next.js, Prisma, Zod, Tailwind, and local helper patterns.
 - Create a new continuity log file for every user prompt in `docs/codex-log/` using `YYYY-MM-DD-HHMM-short-topic.md` in Asia/Jakarta time. Include prompt summary, plan/status, files touched or expected, blockers, verification, and next step so future Codex sessions can continue after interruption or context limits.
-- Group commits by subsystem or documentation area. Prefer separate commits for `agents-console`, `agents-landing-pages`, `agents-lead-maps`, and `docs`; do not mix unrelated subsystem changes in one commit.
+- After finishing an implemented plan and required verification, commit the completed work unless the user explicitly says not to commit.
+- Group commits by feature and subsystem. Prefer separate commits for distinct features or areas such as `agents-console`, `agents-landing-pages`, `agents-lead-maps`, and `docs`; do not mix unrelated feature work in one commit.
 - Keep app ownership boundaries:
   - Lead Maps owns lead discovery.
   - Landing Pages owns generated drafts and public preview routes.
