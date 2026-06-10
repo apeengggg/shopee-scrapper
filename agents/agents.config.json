@@ -1,0 +1,37 @@
+{
+  "agents": [
+    {
+      "id": "lead-maps",
+      "name": "Lead Maps Agent",
+      "folder": "agents-lead-maps",
+      "port": 3001,
+      "url": "http://localhost:3001",
+      "healthUrl": "http://localhost:3001/api/health",
+      "devCommand": "npm.cmd run dev -- -p 3001",
+      "databaseCompose": true,
+      "enabled": true
+    },
+    {
+      "id": "landing-pages",
+      "name": "Landing Page Agent",
+      "folder": "agents-landing-pages",
+      "port": 3002,
+      "url": "http://localhost:3002",
+      "healthUrl": "http://localhost:3002/api/health",
+      "devCommand": "npm.cmd run dev -- -p 3002",
+      "databaseCompose": true,
+      "enabled": true
+    },
+    {
+      "id": "console",
+      "name": "Agents Console",
+      "folder": "agents-console",
+      "port": 3003,
+      "url": "http://localhost:3003",
+      "healthUrl": "http://localhost:3003/api/health",
+      "devCommand": "npm.cmd run dev -- -p 3003",
+      "databaseCompose": true,
+      "enabled": true
+    }
+  ]
+}

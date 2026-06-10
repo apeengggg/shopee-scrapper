@@ -27,3 +27,9 @@ export const draftPatchInput = z.object({
   contactSectionId: z.string().trim().min(1).optional(),
   contactSectionEn: z.string().trim().min(1).optional()
 });
+
+export const draftListInput = z.object({
+  status: z.enum(["draft", "reviewed", "archived", "all"]).default("all"),
+  published: z.enum(["true", "false", "all"]).default("all"),
+  q: z.string().trim().optional()
+});

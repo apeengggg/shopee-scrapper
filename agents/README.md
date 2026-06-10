@@ -4,13 +4,15 @@ This folder contains two local agents that work together:
 
 - `agents-lead-maps`: finds local business leads from OpenStreetMap/Overpass.
 - `agents-landing-pages`: imports those leads and generates bilingual landing-page drafts.
+- `agents-console`: authenticated console for monitoring agents and managing published landing-page previews.
 
 ## App Map
 
 | Agent | Folder | Default URL | Database | Purpose |
 | --- | --- | --- | --- | --- |
 | Lead Maps Agent | `agents-lead-maps` | `http://localhost:3001` | `127.0.0.1:15432/lead_maps_agent` | Search businesses, classify leads, export lead data |
-| Landing Page Agent | `agents-landing-pages` | `http://localhost:3002` | `localhost:5433/landing_pages_agent` | Import leads, create descriptions, edit landing-page drafts |
+| Landing Page Agent | `agents-landing-pages` | `http://localhost:3002` | `127.0.0.1:5433/landing_pages_agent` | Import leads, create descriptions, edit landing-page drafts |
+| Agents Console | `agents-console` | `http://localhost:3003` | `127.0.0.1:5434/agents_console` | Monitor agents, publish previews, manage landing pages |
 
 ## Data Flow
 
@@ -19,6 +21,7 @@ This folder contains two local agents that work together:
 3. Start `agents-landing-pages`.
 4. Import leads from `http://localhost:3001/api/leads`.
 5. Generate and edit bilingual landing-page drafts.
+6. Publish successful drafts from the console to create preview URLs like `http://localhost:3002/p/example-business`.
 
 The Landing Page Agent stores imported copies in its own database and does not modify the Lead Maps database.
 
@@ -56,6 +59,26 @@ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/landing_pages_agent?
 LEAD_MAPS_API_BASE="http://localhost:3001"
 ```
 
+Agents Console:
+
+```powershell
+cd D:\my\agents\agents-console
+Copy-Item .env.example .env
+```
+
+Required defaults:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5434/agents_console?schema=public"
+CONSOLE_PUBLIC_URL="http://localhost:3003"
+LANDING_PAGES_API_BASE="http://localhost:3002"
+LANDING_PAGES_PUBLIC_URL="http://localhost:3002"
+AGENTS_CONFIG_PATH="../agents.config.json"
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="ChangeMe123!"
+SESSION_SECRET="change-this-local-secret"
+```
+
 ## Database Setup
 
 Start each PostgreSQL container from its app folder:
@@ -70,6 +93,12 @@ cd D:\my\agents\agents-landing-pages
 docker compose up -d postgres
 npm.cmd run prisma:generate
 npm.cmd run prisma:migrate
+
+cd D:\my\agents\agents-console
+docker compose up -d postgres
+npm.cmd run prisma:generate
+npm.cmd run prisma:migrate
+npm.cmd run seed:admin
 ```
 
 If Docker Desktop is not running, start it first and rerun the commands.
@@ -91,12 +120,16 @@ npm.cmd run dev -- -p 3001
 
 cd D:\my\agents\agents-landing-pages
 npm.cmd run dev -- -p 3002
+
+cd D:\my\agents\agents-console
+npm.cmd run dev -- -p 3003
 ```
 
 Open:
 
 - Lead Maps Agent: `http://localhost:3001`
 - Landing Page Agent: `http://localhost:3002`
+- Agents Console: `http://localhost:3003`
 
 ## Agent Details
 
@@ -140,3 +173,23 @@ npm.cmd run build
 ```
 
 The generator is deterministic and does not require an AI API key. It does not invent phone numbers, addresses, testimonials, pricing, or opening hours.
+
+### Agents Console
+
+Use this app to monitor configured agents and manage landing-page publishing:
+
+- agent health cards from `agents.config.json`,
+- authenticated login,
+- landing-page list from the Landing Page Agent API,
+- publish/unpublish controls,
+- preview links and embedded previews.
+
+Useful commands:
+
+```powershell
+npm.cmd run dev -- -p 3003
+npm.cmd run seed:admin
+npm.cmd run test
+npm.cmd run lint
+npm.cmd run build
+```
