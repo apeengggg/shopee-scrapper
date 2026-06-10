@@ -22,6 +22,8 @@ Copy-Item .env.example .env
 docker compose up -d postgres
 ```
 
+Database lokal dipublish di `127.0.0.1:15432` agar tidak bentrok dengan PostgreSQL lain di port `5432`.
+
 4. Generate Prisma client dan migrate database:
 
 ```powershell
@@ -35,7 +37,7 @@ npm.cmd run prisma:migrate
 npm.cmd run dev
 ```
 
-Dashboard tersedia di `http://localhost:3000`.
+Dashboard tersedia di `http://localhost:3001`.
 
 ## Cara Pakai
 

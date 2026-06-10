@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStatus {
+  ready
+  candidate
+  ignored
+}
+
+enum DraftStatus {
+  draft
+  reviewed
+  archived
+}
+
+model ImportedLead {
+  id           String         @id @default(cuid())
+  sourceLeadId String         @unique
+  name         String
+  category     String
+  businessType String?
+  phone        String?
+  website      String?
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  sourceStatus LeadStatus
+  source       String         @default("lead-maps")
+  importedAt   DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  drafts       LandingDraft[]
+
+  @@index([sourceStatus])
+  @@index([category])
+}
+
+model LandingDraft {
+  id                String       @id @default(cuid())
+  importedLeadId    String
+  languageMode      String       @default("bilingual")
+  status            DraftStatus  @default(draft)
+  descriptionId     String
+  descriptionEn     String
+  heroHeadlineId    String
+  heroHeadlineEn    String
+  heroSubheadlineId String
+  heroSubheadlineEn String
+  servicesId        String[]
+  servicesEn        String[]
+  trustPointsId     String[]
+  trustPointsEn     String[]
+  ctaId             String
+  ctaEn             String
+  contactSectionId  String
+  contactSectionEn  String
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  importedLead      ImportedLead @relation(fields: [importedLeadId], references: [id], onDelete: Cascade)
+
+  @@index([importedLeadId])
+  @@index([status])
+}
