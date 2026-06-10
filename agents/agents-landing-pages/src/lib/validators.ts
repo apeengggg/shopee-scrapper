@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 export const importLeadsInput = z.object({
-  status: z.enum(["ready", "candidate", "ignored", "all"]).default("ready")
+  status: z.enum(["ready", "candidate", "ignored", "all"]).default("ready"),
+  sourceLeadIds: z.array(z.string().min(1)).max(100).optional(),
+  maxLeads: z.coerce.number().int().min(1).max(200).default(100)
 });
 
 export const createDraftInput = z.object({

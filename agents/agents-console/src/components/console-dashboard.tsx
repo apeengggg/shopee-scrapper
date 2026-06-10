@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExternalLink, KeyRound, LogOut, RadioTower, RefreshCw, Rocket, Search, ShieldCheck, Wand2 } from "lucide-react";
+import { ExternalLink, KeyRound, LogOut, Play, RadioTower, RefreshCw, Rocket, Search, ShieldCheck, Wand2 } from "lucide-react";
 
 type AgentHealth = {
   id: string;
@@ -48,6 +48,47 @@ type OpenAiCredential = {
   updatedAt: string;
 } | null;
 
+type PipelineSettings = {
+  defaultRadiusMeters: number;
+  defaultLeadStatus: "ready" | "candidate" | "ignored" | "all";
+  defaultMaxLeads: number;
+  defaultPublishMode: "review_first" | "auto_publish";
+  defaultCategory: string;
+  defaultLocation: string;
+};
+
+type PipelineRun = {
+  id: string;
+  status: string;
+  location: string;
+  category: string;
+  radiusMeters: number;
+  leadStatusFilter: string;
+  maxLeads: number;
+  publishMode: string;
+  summary?: {
+    searched?: number;
+    selected?: number;
+    imported?: number;
+    generated?: number;
+    fallback?: number;
+    published?: number;
+    failed?: number;
+  } | null;
+  errors?: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+const defaultPipelineSettings: PipelineSettings = {
+  defaultRadiusMeters: 2500,
+  defaultLeadStatus: "ready",
+  defaultMaxLeads: 25,
+  defaultPublishMode: "review_first",
+  defaultCategory: "dental clinic",
+  defaultLocation: "Jakarta Selatan"
+};
+
 export function ConsoleDashboard({
   user
 }: {
@@ -61,6 +102,9 @@ export function ConsoleDashboard({
   const [selectedId, setSelectedId] = useState("");
   const [credential, setCredential] = useState<OpenAiCredential>(null);
   const [apiKey, setApiKey] = useState("");
+  const [pipelineSettings, setPipelineSettings] = useState<PipelineSettings>(defaultPipelineSettings);
+  const [pipelineForm, setPipelineForm] = useState<PipelineSettings>(defaultPipelineSettings);
+  const [pipelineRuns, setPipelineRuns] = useState<PipelineRun[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -75,17 +119,27 @@ export function ConsoleDashboard({
     params.set("published", published);
     if (query.trim()) params.set("q", query.trim());
 
-    const [agentsResponse, landingResponse] = await Promise.all([
+    const [agentsResponse, landingResponse, pipelineSettingsResponse, pipelineRunsResponse] = await Promise.all([
       fetch("/api/agents"),
-      fetch(`/api/landing-pages?${params.toString()}`)
+      fetch(`/api/landing-pages?${params.toString()}`),
+      fetch("/api/settings/pipeline"),
+      fetch("/api/pipelines/lead-to-landing")
     ]);
     const agentsData = await agentsResponse.json();
     const landingData = await landingResponse.json();
+    const pipelineSettingsData = await pipelineSettingsResponse.json();
+    const pipelineRunsData = await pipelineRunsResponse.json();
     if (!agentsResponse.ok) throw new Error(agentsData.error ?? "Failed to load agents");
     if (!landingResponse.ok) throw new Error(landingData.error ?? "Failed to load landing pages");
 
     setAgents(agentsData.agents ?? []);
     setDrafts(landingData.drafts ?? []);
+    if (pipelineSettingsResponse.ok) {
+      const settings = pipelineSettingsData.settings ?? defaultPipelineSettings;
+      setPipelineSettings(settings);
+      setPipelineForm(settings);
+    }
+    if (pipelineRunsResponse.ok) setPipelineRuns(pipelineRunsData.runs ?? []);
     const credentialResponse = await fetch("/api/settings/openai");
     const credentialData = await credentialResponse.json();
     if (credentialResponse.ok) setCredential(credentialData.credential ?? null);
@@ -152,6 +206,57 @@ export function ConsoleDashboard({
     }
   }
 
+  async function savePipelineSettings() {
+    setLoading(true);
+    setMessage("Saving pipeline settings...");
+    try {
+      const response = await fetch("/api/settings/pipeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pipelineForm)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to save pipeline settings");
+      setPipelineSettings(data.settings);
+      setPipelineForm(data.settings);
+      setMessage("Pipeline settings saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to save pipeline settings");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runLeadPipeline() {
+    setLoading(true);
+    setMessage("Running lead-to-landing pipeline...");
+    try {
+      const response = await fetch("/api/pipelines/lead-to-landing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location: pipelineForm.defaultLocation,
+          category: pipelineForm.defaultCategory,
+          radiusMeters: pipelineForm.defaultRadiusMeters,
+          leadStatusFilter: pipelineForm.defaultLeadStatus,
+          maxLeads: pipelineForm.defaultMaxLeads,
+          publishMode: pipelineForm.defaultPublishMode
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Pipeline failed");
+      const summary = data.run?.summary;
+      setMessage(
+        `Pipeline ${data.run?.status ?? "completed"}: ${summary?.generated ?? 0} generated, ${summary?.failed ?? 0} failed.`
+      );
+      await refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Pipeline failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function regenerateWithOpenAi(draftId: string) {
     setLoading(true);
     setMessage("Generating landing page with OpenAI...");
@@ -185,6 +290,7 @@ export function ConsoleDashboard({
     }),
     [agents, drafts]
   );
+  const latestPipelineRun = pipelineRuns[0];
 
   return (
     <main className="min-h-screen bg-[#eef2f6] text-ink">
@@ -284,6 +390,92 @@ export function ConsoleDashboard({
                   Remove
                 </button>
               </div>
+            </section>
+
+            <section className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-center gap-2">
+                <Play size={18} />
+                <h2 className="text-lg font-semibold">Lead Pipeline</h2>
+              </div>
+              <div className="mt-3 grid gap-3">
+                <Field
+                  label="Location"
+                  value={pipelineForm.defaultLocation}
+                  onChange={(value) => setPipelineForm({ ...pipelineForm, defaultLocation: value })}
+                />
+                <Field
+                  label="Category"
+                  value={pipelineForm.defaultCategory}
+                  onChange={(value) => setPipelineForm({ ...pipelineForm, defaultCategory: value })}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <Field
+                    label="Radius"
+                    value={String(pipelineForm.defaultRadiusMeters)}
+                    type="number"
+                    onChange={(value) => setPipelineForm({ ...pipelineForm, defaultRadiusMeters: Number(value) })}
+                  />
+                  <Field
+                    label="Max leads"
+                    value={String(pipelineForm.defaultMaxLeads)}
+                    type="number"
+                    onChange={(value) => setPipelineForm({ ...pipelineForm, defaultMaxLeads: Number(value) })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-sm">
+                    <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Lead status</span>
+                    <select
+                      value={pipelineForm.defaultLeadStatus}
+                      onChange={(event) => setPipelineForm({ ...pipelineForm, defaultLeadStatus: event.target.value as PipelineSettings["defaultLeadStatus"] })}
+                      className="h-10 w-full rounded border border-line bg-field px-3 text-sm"
+                    >
+                      <option value="ready">Ready</option>
+                      <option value="candidate">Candidate</option>
+                      <option value="ignored">Ignored</option>
+                      <option value="all">All</option>
+                    </select>
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Publish mode</span>
+                    <select
+                      value={pipelineForm.defaultPublishMode}
+                      onChange={(event) => setPipelineForm({ ...pipelineForm, defaultPublishMode: event.target.value as PipelineSettings["defaultPublishMode"] })}
+                      className="h-10 w-full rounded border border-line bg-field px-3 text-sm"
+                    >
+                      <option value="review_first">Review first</option>
+                      <option value="auto_publish">Auto publish</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={runLeadPipeline}
+                  className="inline-flex h-10 items-center gap-2 rounded bg-action px-4 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  <Play size={15} />
+                  Run Pipeline
+                </button>
+                <button
+                  type="button"
+                  disabled={loading || JSON.stringify(pipelineForm) === JSON.stringify(pipelineSettings)}
+                  onClick={savePipelineSettings}
+                  className="h-10 rounded border border-line bg-white px-4 text-sm font-semibold disabled:opacity-50"
+                >
+                  Save Defaults
+                </button>
+              </div>
+              {latestPipelineRun ? (
+                <div className="mt-3 rounded border border-line bg-field px-3 py-2 text-xs text-slate-700">
+                  <div className="font-semibold">{latestPipelineRun.status}</div>
+                  <div className="mt-1">
+                    {latestPipelineRun.summary?.selected ?? 0} selected · {latestPipelineRun.summary?.generated ?? 0} generated · {latestPipelineRun.summary?.failed ?? 0} failed
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             {message ? (
@@ -403,6 +595,30 @@ export function ConsoleDashboard({
         </section>
       </div>
     </main>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text"
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="text-sm">
+      <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 w-full rounded border border-line bg-field px-3 text-sm"
+      />
+    </label>
   );
 }
 

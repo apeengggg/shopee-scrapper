@@ -5,6 +5,7 @@
 Landing Pages can generate bilingual landing-page drafts from imported leads using an OpenAI API model. When project notes mention Codex generation, they mean this runtime OpenAI API model flow. The deterministic template generator remains as a fallback.
 
 Landing Pages owns generated draft storage, regeneration, publishing state, preview routes, and customer-facing pages at `/p/[slug]`.
+Agents Console can run the full lead-to-landing pipeline from one screen: search Lead Maps, import selected leads into Landing Pages, generate drafts, and leave them ready for review by default.
 
 ## API Key
 
@@ -48,6 +49,7 @@ The model must return structured JSON with:
 - Suggested template photo key.
 
 Console must request generation through Landing Pages APIs. Console must not read or write the Landing Pages database directly.
+For automated pipeline runs, Console sends selected imported lead IDs to Landing Pages and stores pipeline run summaries in the Console database.
 
 ## Safety Rules
 

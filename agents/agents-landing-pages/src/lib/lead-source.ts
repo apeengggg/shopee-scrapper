@@ -14,9 +14,19 @@ export type SourceLead = {
   status: LeadStatus;
 };
 
-export async function fetchSourceLeads(status: LeadStatus | "all") {
+export async function fetchSourceLeads({
+  status,
+  sourceLeadIds,
+  maxLeads
+}: {
+  status: LeadStatus | "all";
+  sourceLeadIds?: string[];
+  maxLeads: number;
+}) {
   const params = new URLSearchParams();
   params.set("status", status);
+  params.set("limit", String(maxLeads));
+  if (sourceLeadIds?.length) params.set("ids", sourceLeadIds.join(","));
 
   const response = await fetch(`${appConfig.leadMapsApiBase}/api/leads?${params.toString()}`, {
     cache: "no-store"
@@ -27,5 +37,5 @@ export async function fetchSourceLeads(status: LeadStatus | "all") {
   }
 
   const data = (await response.json()) as { leads?: SourceLead[] };
-  return data.leads ?? [];
+  return (data.leads ?? []).slice(0, maxLeads);
 }

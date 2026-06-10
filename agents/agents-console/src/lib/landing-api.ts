@@ -19,6 +19,13 @@ export type ConsoleLandingDraft = {
   };
 };
 
+export type ImportedLeadForGeneration = {
+  id: string;
+  sourceLeadId: string;
+  name: string;
+  category: string;
+};
+
 export async function listLandingDrafts(params: URLSearchParams) {
   const response = await fetch(
     `${appConfig.landingPagesApiBase}/api/landing-drafts?${params.toString()}`,
@@ -56,6 +63,31 @@ export async function generateLandingDraft({
   const data = await response.json();
   if (!response.ok) throw new Error(data.error ?? "Failed to generate draft");
   return data;
+}
+
+export async function importLeads({
+  sourceLeadIds,
+  status,
+  maxLeads
+}: {
+  sourceLeadIds?: string[];
+  status: "ready" | "candidate" | "ignored" | "all";
+  maxLeads: number;
+}) {
+  const response = await fetch(`${appConfig.landingPagesApiBase}/api/import-leads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sourceLeadIds, status, maxLeads }),
+    cache: "no-store"
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Failed to import leads");
+  return data as {
+    imported: number;
+    created: number;
+    updated: number;
+    leads: ImportedLeadForGeneration[];
+  };
 }
 
 export async function regenerateLandingDraft({

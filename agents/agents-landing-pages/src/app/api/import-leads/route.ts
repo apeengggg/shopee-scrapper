@@ -8,10 +8,15 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const input = importLeadsInput.parse(body);
-    const sourceLeads = await fetchSourceLeads(input.status);
+    const sourceLeads = await fetchSourceLeads({
+      status: input.status,
+      sourceLeadIds: input.sourceLeadIds,
+      maxLeads: input.maxLeads
+    });
 
     let created = 0;
     let updated = 0;
+    const leads = [];
 
     for (const sourceLead of sourceLeads) {
       const data: Prisma.ImportedLeadCreateInput = {
@@ -32,17 +37,18 @@ export async function POST(request: Request) {
         select: { id: true }
       });
 
-      await prisma.importedLead.upsert({
+      const importedLead = await prisma.importedLead.upsert({
         where: { sourceLeadId: sourceLead.id },
         create: data,
         update: data
       });
+      leads.push(importedLead);
 
       if (existing) updated += 1;
       else created += 1;
     }
 
-    return json({ imported: sourceLeads.length, created, updated });
+    return json({ imported: sourceLeads.length, created, updated, leads });
   } catch (error) {
     return apiError(error);
   }

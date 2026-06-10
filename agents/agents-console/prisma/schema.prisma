@@ -48,3 +48,37 @@ model IntegrationCredential {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model ConsoleSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PipelineRun {
+  id               String   @id @default(cuid())
+  kind             String   @default("lead-to-landing")
+  status           String   @default("queued")
+  location         String
+  category         String
+  radiusMeters     Int
+  leadStatusFilter String
+  maxLeads         Int
+  publishMode      String
+  config           Json
+  summary          Json?
+  errors           String[] @default([])
+  draftIds         String[] @default([])
+  previewUrls      String[] @default([])
+  createdById      String
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([kind, createdAt])
+  @@index([status])
+  @@index([createdById])
+}

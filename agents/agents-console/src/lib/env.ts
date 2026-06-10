@@ -1,6 +1,8 @@
 export const appConfig = {
   consolePublicUrl:
     process.env.CONSOLE_PUBLIC_URL?.replace(/\/$/, "") ?? "http://localhost:3003",
+  leadMapsApiBase:
+    process.env.LEAD_MAPS_API_BASE?.replace(/\/$/, "") ?? "http://localhost:3001",
   landingPagesApiBase:
     process.env.LANDING_PAGES_API_BASE?.replace(/\/$/, "") ?? "http://localhost:3002",
   landingPagesPublicUrl:

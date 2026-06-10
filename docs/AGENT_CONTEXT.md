@@ -13,10 +13,10 @@ The workspace contains three local apps:
 ## Data Flow
 
 1. Lead Maps searches businesses and stores lead records.
-2. Landing Pages imports leads from Lead Maps API.
-3. Landing Pages generates or regenerates landing-page drafts.
-4. Console stores encrypted OpenAI credentials and sends generation requests to Landing Pages through APIs.
-5. Console lists, publishes, or unpublishes drafts through Landing Pages APIs.
+2. Console can orchestrate a lead-to-landing pipeline from one UI: search Lead Maps, select leads, import into Landing Pages, generate drafts, and leave them ready for review.
+3. Landing Pages imports leads from Lead Maps API and owns generated draft records.
+4. Landing Pages generates or regenerates landing-page drafts with the Console-registered OpenAI key sent server-to-server.
+5. Console stores encrypted OpenAI credentials and lists, previews, publishes, or unpublishes drafts through Landing Pages APIs.
 6. Customers view published pages at Landing Pages public routes like `/p/[slug]`.
 
 ## Runtime
@@ -39,6 +39,7 @@ Configuration is in `agents/agents.config.json`.
 - Runtime landing-page generation uses the OpenAI API key registered in Console. When docs mention Codex generation, treat it as this OpenAI API model flow, not direct file edits by the Codex coding agent.
 - Customer preview routes remain public after publishing.
 - Landing page photos must use local template photos unless the user explicitly asks for generated or remote images.
+- Console owns pipeline orchestration and configurable defaults, but must call Lead Maps and Landing Pages through APIs.
 
 ## Adding A New Agent
 
@@ -56,3 +57,4 @@ Follow `docs/AGENT_WORKFLOW.md` for changing features or creating agents. The sh
 - Console default port is `3003`.
 - OpenAI secrets must not be committed.
 - Codex sessions should create a new per-prompt log in `docs/codex-log/`, not append to a single shared changelog.
+- Lead-to-landing automation stores run history in Console and defaults to review before publish.
