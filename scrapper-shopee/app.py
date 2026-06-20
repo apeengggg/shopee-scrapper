@@ -82,18 +82,27 @@ if start_btn and keyword.strip():
     kw = keyword.strip()
 
     progress_bar = st.progress(0, text="Memulai scraping...")
-    status_placeholder = st.empty()
+    log_lines: list[str] = []
 
     def on_progress(current: int, total: int, items: int):
         pct = int(current / total * 100)
         progress_bar.progress(pct, text=f"Halaman {current}/{total} — {items} produk ditemukan")
 
+    def on_log(msg: str):
+        log_lines.append(msg)
+
     with st.spinner(f'Scraping "{kw}"...'):
         products = asyncio.run(
-            scrape_keyword(kw, max_pages=int(max_pages), progress_callback=on_progress)
+            scrape_keyword(
+                kw,
+                max_pages=int(max_pages),
+                progress_callback=on_progress,
+                log_callback=on_log,
+            )
         )
 
     progress_bar.progress(100, text="Selesai!")
+    st.session_state["last_logs"] = log_lines
 
     if products:
         result = insert_products(products)
@@ -111,7 +120,12 @@ if start_btn and keyword.strip():
 
         st.success(f"✅ Scraping selesai! Excel disimpan di: `{excel_path}`")
     else:
-        st.warning("⚠️ Tidak ada produk yang berhasil di-scrape. Coba ulangi atau ganti keyword.")
+        st.warning("⚠️ Tidak ada produk yang berhasil di-scrape. Cek log di bawah untuk detail.")
+
+# ── Scraping log ─────────────────────────────────────────────────────────────
+if "last_logs" in st.session_state and st.session_state["last_logs"]:
+    with st.expander("📋 Log Scraping", expanded=not bool(st.session_state.get("last_df"))):
+        st.code("\n".join(st.session_state["last_logs"]), language=None)
 
 # ── Results table ────────────────────────────────────────────────────────────
 st.divider()
