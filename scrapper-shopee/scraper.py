@@ -73,6 +73,129 @@ async def _scroll_page(page: Page):
         await asyncio.sleep(random.uniform(0.3, 0.8))
 
 
+async def _type_human(page: Page, selector: str, text: str):
+    """Type text character by character with small random delays."""
+    await page.click(selector)
+    await asyncio.sleep(random.uniform(0.3, 0.6))
+    for char in text:
+        await page.keyboard.type(char)
+        await asyncio.sleep(random.uniform(0.05, 0.18))
+
+
+async def _get_search_page(page: Page, keyword: str, log: callable) -> bool:
+    """
+    First page: use the homepage search box to look like a real user.
+    Returns True if navigation succeeded.
+    """
+    log("[SEARCH] Locating search input on homepage...")
+    # Shopee search box selectors (try multiple fallbacks)
+    selectors = [
+        'input[placeholder*="Cari"]',
+        'input[type="search"]',
+        'input[class*="search"]',
+        '.shopee-searchbar-input__input',
+    ]
+    search_input = None
+    for sel in selectors:
+        try:
+            el = await page.wait_for_selector(sel, timeout=4000)
+            if el:
+                search_input = sel
+                log(f"[SEARCH] Found input: {sel}")
+                break
+        except Exception:
+            continue
+
+    if search_input:
+        await _type_human(page, search_input, keyword)
+        log(f"[SEARCH] Typed '{keyword}', pressing Enter...")
+        async with page.expect_response(
+            lambda r: SEARCH_API_PATTERN in r.url and r.status == 200,
+            timeout=25000,
+        ) as resp_info:
+            await page.keyboard.press("Enter")
+            await page.wait_for_load_state("domcontentloaded")
+            await _scroll_page(page)
+
+        return resp_info
+    else:
+        log("[WARN] Search box not found, falling back to direct URL navigation")
+        return None
+
+
+async def _fetch_page_data(
+    page: Page,
+    url: str,
+    log: callable,
+) -> "asyncio.Future | None":
+    """Navigate to a search URL and return expect_response future."""
+    log(f"[PAGE] Navigating to: {url}")
+    try:
+        async with page.expect_response(
+            lambda r: SEARCH_API_PATTERN in r.url and r.status == 200,
+            timeout=25000,
+        ) as resp_info:
+            nav_resp = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            log(f"[OK] Page loaded - HTTP {nav_resp.status if nav_resp else 'N/A'}")
+            await _scroll_page(page)
+        return resp_info
+    except Exception as e:
+        log(f"[ERR] Navigation failed: {e}")
+        return None
+
+
+async def _parse_resp_info(resp_info, keyword: str, log: callable) -> list[dict]:
+    """Read and parse the captured API response. Browser must still be open."""
+    try:
+        api_response = await resp_info.value
+        log(f"[API] Got response - status {api_response.status}, parsing JSON...")
+        data = await api_response.json()
+
+        top_keys = list(data.keys())
+        log(f"[DATA] Response keys: {top_keys}")
+
+        if "items" not in data:
+            log("[WARN] 'items' key missing - bot-detected (error: 90309999) or rate-limited")
+            if "error" in data:
+                log(f"[WARN] error code: {data.get('error')}")
+            return []
+
+        items = data["items"]
+        log(f"[ITEMS] Items in response: {len(items)}")
+
+        products = []
+        skip = 0
+        for entry in items:
+            raw = entry.get("item", entry)
+            parsed = _parse_item(raw, keyword)
+            if parsed["item_id"]:
+                products.append(parsed)
+            else:
+                skip += 1
+                if skip == 1:
+                    log(f"[WARN] Sample item keys (no item_id): {list(raw.keys())[:15]}")
+
+        log(f"[OK] Parsed: {len(products)} | Skipped: {skip}")
+        return products
+
+    except Exception as e:
+        log(f"[ERR] Failed to parse API response: {e}")
+        return []
+
+
+# Log-only response listener (no data parsing - avoids race conditions)
+def _make_log_listener(log: callable):
+    def _on_response(response: Response):
+        url = response.url
+        if "verify/traffic" in url:
+            log(f"  [BLOCK] Bot-check page: {url[:90]}")
+        elif SEARCH_API_PATTERN in url:
+            log(f"  [API] Fired - status {response.status}")
+        elif "/api/v4/" in url:
+            log(f"  [OTHER-API] {url[:90]}")
+    return _on_response
+
+
 async def scrape_keyword(
     keyword: str,
     max_pages: int = 5,
@@ -86,19 +209,8 @@ async def scrape_keyword(
         if log_callback:
             log_callback(line)
 
-    # Log-only listener — no data parsing here to avoid race conditions
-    def _on_response(response: Response):
-        url = response.url
-        if "verify/traffic" in url:
-            log(f"  [BLOCK] Bot-check detected: {url[:90]}")
-        elif SEARCH_API_PATTERN in url:
-            log(f"  [API] Response fired — status {response.status} — will parse via expect_response")
-        elif "/api/v4/" in url:
-            log(f"  [OTHER-API] {url[:90]}")
-
     all_products: list[dict] = []
-
-    log(f"[START] Scraper started — keyword='{keyword}', max_pages={max_pages}")
+    log(f"[START] Scraper started - keyword='{keyword}', max_pages={max_pages}")
 
     async with async_playwright() as pw:
         log("[BROWSER] Launching Chromium (headless)...")
@@ -124,79 +236,44 @@ async def scrape_keyword(
         await context.add_init_script(_STEALTH_SCRIPT)
 
         page = await context.new_page()
-        page.on("response", _on_response)
+        page.on("response", _make_log_listener(log))
         log("[OK] Browser ready with stealth patches applied")
 
-        # Warm up: get cookies from homepage
-        log("[WARMUP] Visiting homepage to establish session...")
+        # -- Warmup: load homepage with networkidle so all fingerprint JS runs --
+        log("[WARMUP] Loading homepage (networkidle) to let fingerprinting cookies settle...")
         try:
-            await page.goto(SHOPEE_BASE, wait_until="domcontentloaded", timeout=30000)
-            await asyncio.sleep(random.uniform(1.5, 2.5))
-            log("[OK] Homepage loaded — cookies established")
+            await page.goto(SHOPEE_BASE, wait_until="networkidle", timeout=40000)
+            wait_s = round(random.uniform(4.0, 6.0), 1)
+            log(f"[WARMUP] Page fully idle. Waiting {wait_s}s for cookies to mature...")
+            await asyncio.sleep(wait_s)
+            log("[OK] Warmup done - session cookies established")
         except Exception as e:
-            log(f"[WARN] Homepage warmup failed (continuing): {e}")
+            log(f"[WARN] Warmup failed ({e}), continuing anyway...")
 
         kw_encoded = urllib.parse.quote_plus(keyword)
 
         for page_num in range(max_pages):
             offset = page_num * 60
-            url = f"{SHOPEE_BASE}/search?keyword={kw_encoded}&page={page_num}&newest={offset}"
-
             log(f"\n--- Halaman {page_num + 1}/{max_pages} ---")
-            log(f"[PAGE] Navigating to: {url}")
 
-            page_products: list[dict] = []
+            if page_num == 0:
+                # First page: type in search box from homepage (most human-like)
+                resp_info = await _get_search_page(page, keyword, log)
+                if resp_info is None:
+                    # Fallback to URL navigation
+                    url = f"{SHOPEE_BASE}/search?keyword={kw_encoded}&page=0&newest=0"
+                    resp_info = await _fetch_page_data(page, url, log)
+            else:
+                # Subsequent pages: direct URL navigation
+                url = f"{SHOPEE_BASE}/search?keyword={kw_encoded}&page={page_num}&newest={offset}"
+                resp_info = await _fetch_page_data(page, url, log)
 
-            try:
-                # expect_response waits for the API response WHILE navigating + scrolling.
-                # This avoids the race condition where response.json() runs after browser close.
-                async with page.expect_response(
-                    lambda r: SEARCH_API_PATTERN in r.url and r.status == 200,
-                    timeout=20000,
-                ) as resp_info:
-                    nav_resp = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                    log(f"[OK] Page loaded — HTTP {nav_resp.status if nav_resp else 'N/A'}")
-                    log("[SCROLL] Scrolling page...")
-                    await _scroll_page(page)
+            if resp_info is None:
+                if progress_callback:
+                    progress_callback(page_num + 1, max_pages, len(all_products))
+                continue
 
-                # Browser is still open here — safe to read the response body
-                api_response = await resp_info.value
-                log(f"[API] Got response — status {api_response.status}, parsing JSON...")
-                data = await api_response.json()
-
-                top_keys = list(data.keys())
-                log(f"[DATA] Response keys: {top_keys}")
-
-                if "items" not in data:
-                    log("[WARN] 'items' key missing — likely bot-detected or rate-limited")
-                    if "error" in data:
-                        log(f"[WARN] error value: {str(data.get('error'))[:120]}")
-                else:
-                    items = data.get("items", [])
-                    log(f"[ITEMS] Items in response: {len(items)}")
-
-                    parsed_count = 0
-                    skip_count = 0
-                    for entry in items:
-                        raw = entry.get("item", entry)
-                        parsed = _parse_item(raw, keyword)
-                        if parsed["item_id"]:
-                            page_products.append(parsed)
-                            parsed_count += 1
-                        else:
-                            skip_count += 1
-
-                    log(f"[OK] Parsed: {parsed_count} | Skipped (no item_id): {skip_count}")
-
-                    if items and parsed_count == 0:
-                        sample = items[0].get("item", items[0])
-                        log(f"[WARN] Sample item keys: {list(sample.keys())[:15]}")
-
-            except Exception as e:
-                if "Timeout" in str(e) or "timeout" in str(e):
-                    log(f"[ERR] Timed out waiting for search API response (20s). Page may be blocked.")
-                else:
-                    log(f"[ERR] {e}")
+            page_products = await _parse_resp_info(resp_info, keyword, log)
 
             if page_products:
                 seen_ids = {p["item_id"] for p in all_products}
@@ -216,7 +293,7 @@ async def scrape_keyword(
                 log(f"[DELAY] Waiting {delay}s before next page...")
                 await asyncio.sleep(delay)
 
-        log(f"\n[DONE] Scraping finished — total {len(all_products)} products")
+        log(f"\n[DONE] Scraping finished - total {len(all_products)} products")
         await browser.close()
         log("[OK] Browser closed")
 
