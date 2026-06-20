@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 420px; min-height: 300px; font-family: Arial, sans-serif; font-size: 13px; background: #fff; }
+
+.header {
+    background: #EE4D2D;
+    color: white;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.header span { font-size: 11px; font-weight: normal; opacity: 0.85; }
+
+.body { padding: 12px 14px; }
+
+.row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+input[type=text] {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+}
+input[type=text]:focus { border-color: #EE4D2D; }
+input[type=number] {
+    width: 56px;
+    padding: 6px 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+}
+
+button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.btn-primary { background: #EE4D2D; color: white; }
+.btn-primary:hover { background: #d43b1e; }
+.btn-primary:disabled { background: #f5a898; cursor: not-allowed; }
+.btn-stop { background: #ff7043; color: white; }
+.btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+.btn-secondary:hover { background: #e8e8e8; }
+.btn-danger { background: #fff; color: #e53935; border: 1px solid #e53935; }
+.btn-danger:hover { background: #fff5f5; }
+
+.status-bar {
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-bottom: 8px;
+    display: none;
+}
+.status-running { background: #fff3e0; border-left: 3px solid #ff9800; color: #e65100; }
+.status-done    { background: #e8f5e9; border-left: 3px solid #4caf50; color: #1b5e20; }
+.status-stopped { background: #f5f5f5; border-left: 3px solid #9e9e9e; color: #555; }
+
+.stats { display: flex; gap: 8px; margin-bottom: 10px; }
+.stat {
+    flex: 1;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+}
+.stat-num { font-size: 24px; font-weight: bold; color: #EE4D2D; line-height: 1; }
+.stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+
+.actions { display: flex; gap: 6px; margin-bottom: 10px; }
+.actions button { flex: 1; }
+
+.table-wrap {
+    max-height: 210px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+thead th {
+    background: #f5f5f5;
+    padding: 5px 6px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    position: sticky;
+    top: 0;
+    font-size: 11px;
+    color: #555;
+}
+tbody td { padding: 4px 6px; border-bottom: 1px solid #f5f5f5; }
+tbody tr:hover td { background: #fff8f6; }
+a { color: #EE4D2D; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.empty { text-align: center; color: #aaa; padding: 28px 10px; font-size: 12px; line-height: 1.8; }
+
+.footer { font-size: 10px; color: #bbb; text-align: right; }
+</style>
+</head>
+<body>
+<div class="header">
+    Shopee Scraper
+    <span>— buka Shopee, lalu klik Scrape</span>
+</div>
+<div class="body">
+
+    <div class="row">
+        <input type="text" id="keyword" placeholder="keyword (contoh: sepatu nike)">
+        <input type="number" id="maxPages" value="5" min="1" max="20" title="Jumlah halaman">
+        <button class="btn-primary" id="btnScrape">&#9654; Scrape</button>
+        <button class="btn-stop" id="btnStop" style="display:none">&#9632; Stop</button>
+    </div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-num" id="countTotal">0</div>
+            <div class="stat-label">Total Produk</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num" id="countKeywords">0</div>
+            <div class="stat-label">Keyword</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num" id="countNew">0</div>
+            <div class="stat-label">Sesi Ini</div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-secondary" id="btnDownload">&#8659; Download CSV</button>
+        <button class="btn-danger" id="btnClear">Hapus Semua</button>
+    </div>
+
+    <div class="table-wrap" id="tableWrap">
+        <div class="empty" id="emptyState">
+            Belum ada data.<br>
+            Buka Shopee &rarr; masukkan keyword &rarr; klik <b>Scrape</b>.
+        </div>
+        <table id="productTable" style="display:none">
+            <thead>
+                <tr>
+                    <th>Nama Produk</th>
+                    <th>Harga Min</th>
+                    <th>Rating</th>
+                    <th>Terjual</th>
+                    <th>Lokasi</th>
+                </tr>
+            </thead>
+            <tbody id="productBody"></tbody>
+        </table>
+    </div>
+
+    <div class="footer">Data disimpan di browser &bull; CSV berisi semua produk</div>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>
