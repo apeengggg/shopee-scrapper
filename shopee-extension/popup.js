@@ -126,6 +126,7 @@ function renderTable() {
             <td title="${shopName}">${shortShop}</td>
             <td>${fmtPrice(p.price_min)}</td>
             <td>${p.rating_star || '-'}</td>
+            <td>${p.review_count ?? '-'}</td>
             <td>${p.sold || '-'}</td>
             <td>${p.shop_location || '-'}</td>
         </tr>`;
@@ -241,6 +242,12 @@ function buildExportData() {
         { key: 'price_min',     label: 'Harga Min (Rp)',    type: 'price'  },
         { key: 'price_max',     label: 'Harga Max (Rp)',    type: 'price'  },
         { key: 'rating_star',   label: 'Rating',            type: 'number' },
+        { key: 'review_count',  label: 'Jumlah Ulasan',    type: 'number' },
+        { key: 'rating_count_5', label: 'Ulasan 5★',       type: 'number' },
+        { key: 'rating_count_4', label: 'Ulasan 4★',       type: 'number' },
+        { key: 'rating_count_3', label: 'Ulasan 3★',       type: 'number' },
+        { key: 'rating_count_2', label: 'Ulasan 2★',       type: 'number' },
+        { key: 'rating_count_1', label: 'Ulasan 1★',       type: 'number' },
         { key: 'sold',          label: 'Terjual',           type: 'number' },
         { key: 'liked_count',   label: 'Disukai',           type: 'number' },
         { key: 'shop_location', label: 'Lokasi Toko',       type: 'string' },

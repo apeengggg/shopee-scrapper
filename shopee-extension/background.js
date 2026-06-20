@@ -61,6 +61,8 @@ function parseItem(entry, keyword) {
     const rawPriceMax = dig(entry, 'price_max', 'max_price') ?? dig(entry, 'price') ?? 0;
     const ratingObj   = sub.item_rating || entry.item_rating;
     const ratingStar  = ratingObj ? round2(ratingObj.rating_star || 0) : 0;
+    const ratingCount = Array.isArray(ratingObj?.rating_count) ? ratingObj.rating_count : [];
+    const reviewCount = ratingCount.reduce((s, v) => s + (v || 0), 0);
     const sold        = dig(entry, 'sold', 'historical_sold', 'sold_count') ?? 0;
     const likedCount  = dig(entry, 'liked_count', 'like_count') ?? 0;
     const shopLoc     = dig(entry, 'shop_location', 'location', 'city') || '';
@@ -78,6 +80,10 @@ function parseItem(entry, keyword) {
     return {
         item_id: itemId, shop_id: shopId, name,
         price_min: priceMin, price_max: priceMax, rating_star: ratingStar,
+        review_count: reviewCount,
+        rating_count_1: ratingCount[0] || 0, rating_count_2: ratingCount[1] || 0,
+        rating_count_3: ratingCount[2] || 0, rating_count_4: ratingCount[3] || 0,
+        rating_count_5: ratingCount[4] || 0,
         sold, liked_count: likedCount, shop_location: shopLoc, shop_name: shopName,
         image_url: image ? `https://cf.shopee.co.id/file/${image}` : '',
         product_url: productUrl, keyword,
@@ -112,7 +118,7 @@ async function handleSearchData(data, keyword, tabId) {
     const map = new Map(existing.map((p) => [p.item_id, p]));
     for (const p of newProducts) {
         const old = map.get(p.item_id);
-        if (!old || dataScore(p) > dataScore(old)) map.set(p.item_id, p);
+        if (!old || dataScore(p) >= dataScore(old)) map.set(p.item_id, p);
     }
     const merged = [...map.values()];
 
