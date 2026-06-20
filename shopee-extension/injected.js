@@ -4,6 +4,13 @@
     const SEARCH_PATTERN = '/api/v4/search/search_items';
 
     function emit(data) {
+        // Log to page console so structure is visible in DevTools (F12 → Console)
+        console.log('[ShopeeExt] intercepted', data?.items?.length ?? 0, 'items from', SEARCH_PATTERN);
+        if (data?.items?.[0]) {
+            const sample = data.items[0];
+            console.log('[ShopeeExt] first item keys:', Object.keys(sample));
+            if (sample.item_basic) console.log('[ShopeeExt] item_basic keys:', Object.keys(sample.item_basic));
+        }
         window.postMessage({ __shopee_scraper: true, type: 'SEARCH_DATA', data }, '*');
     }
 

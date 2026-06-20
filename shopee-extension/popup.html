@@ -4,112 +4,113 @@
 <meta charset="UTF-8">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { width: 420px; min-height: 300px; font-family: Arial, sans-serif; font-size: 13px; background: #fff; }
+body { width: 480px; font-family: Arial, sans-serif; font-size: 13px; background: #fff; }
 
 .header {
-    background: #EE4D2D;
-    color: white;
-    padding: 10px 14px;
-    font-size: 15px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    background: #EE4D2D; color: white;
+    padding: 10px 14px; font-size: 15px; font-weight: bold;
+    display: flex; align-items: center; gap: 8px;
 }
 .header span { font-size: 11px; font-weight: normal; opacity: 0.85; }
 
 .body { padding: 12px 14px; }
 
 .row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
-input[type=text] {
-    flex: 1;
-    padding: 6px 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    outline: none;
+input[type=text], input[type=number] {
+    padding: 5px 7px; border: 1px solid #ddd; border-radius: 4px;
+    font-size: 12px; outline: none;
 }
-input[type=text]:focus { border-color: #EE4D2D; }
-input[type=number] {
-    width: 56px;
-    padding: 6px 4px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    text-align: center;
-    outline: none;
-}
+input[type=text]:focus, input[type=number]:focus { border-color: #EE4D2D; }
+input[type=text] { flex: 1; }
 
 button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-    white-space: nowrap;
+    padding: 6px 12px; border: none; border-radius: 4px;
+    cursor: pointer; font-size: 12px; font-weight: bold; white-space: nowrap;
 }
-.btn-primary { background: #EE4D2D; color: white; }
-.btn-primary:hover { background: #d43b1e; }
+.btn-primary  { background: #EE4D2D; color: white; }
+.btn-primary:hover  { background: #d43b1e; }
 .btn-primary:disabled { background: #f5a898; cursor: not-allowed; }
-.btn-stop { background: #ff7043; color: white; }
-.btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+.btn-stop     { background: #ff7043; color: white; }
+.btn-secondary{ background: #f5f5f5; color: #333; border: 1px solid #ddd; }
 .btn-secondary:hover { background: #e8e8e8; }
-.btn-danger { background: #fff; color: #e53935; border: 1px solid #e53935; }
+.btn-danger   { background: #fff; color: #e53935; border: 1px solid #e53935; }
 .btn-danger:hover { background: #fff5f5; }
+.btn-sm       { padding: 4px 8px; font-size: 11px; font-weight: normal; background: #f5f5f5; color: #555; border: 1px solid #ddd; }
+.btn-sm:hover { background: #e8e8e8; }
 
-.status-bar {
-    padding: 7px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    margin-bottom: 8px;
-    display: none;
-}
+.status-bar { padding: 7px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; display: none; }
 .status-running { background: #fff3e0; border-left: 3px solid #ff9800; color: #e65100; }
 .status-done    { background: #e8f5e9; border-left: 3px solid #4caf50; color: #1b5e20; }
 .status-stopped { background: #f5f5f5; border-left: 3px solid #9e9e9e; color: #555; }
 
 .stats { display: flex; gap: 8px; margin-bottom: 10px; }
-.stat {
-    flex: 1;
-    background: #fafafa;
-    border: 1px solid #f0f0f0;
-    border-radius: 6px;
-    padding: 8px;
-    text-align: center;
-}
-.stat-num { font-size: 24px; font-weight: bold; color: #EE4D2D; line-height: 1; }
-.stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+.stat { flex: 1; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px; padding: 8px; text-align: center; }
+.stat-num { font-size: 22px; font-weight: bold; color: #EE4D2D; line-height: 1; }
+.stat-label { font-size: 10px; color: #888; margin-top: 2px; }
 
+/* ── Filter panel ── */
+.filter-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fafafa; border: 1px solid #eee; border-radius: 4px;
+    padding: 6px 10px; margin-bottom: 6px; cursor: pointer; user-select: none;
+}
+.filter-toggle:hover { background: #f0f0f0; }
+.filter-toggle-label { font-size: 12px; font-weight: bold; color: #555; }
+.filter-toggle-arrow { font-size: 10px; color: #999; }
+
+.filter-panel {
+    background: #fafafa; border: 1px solid #eee; border-radius: 4px;
+    padding: 10px; margin-bottom: 8px; display: none;
+}
+.filter-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;
+}
+.filter-group label { display: block; font-size: 10px; color: #888; margin-bottom: 2px; }
+.filter-group input { width: 100%; }
+.filter-range { display: flex; align-items: center; gap: 4px; }
+.filter-range input { flex: 1; }
+.filter-range span { font-size: 11px; color: #aaa; flex-shrink: 0; }
+.filter-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+
+.affiliate-box {
+    border-top: 1px solid #e8e8e8; margin-top: 8px; padding-top: 8px;
+}
+.affiliate-box label { font-size: 10px; color: #888; display: block; margin-bottom: 2px; }
+.affiliate-box input { width: 100%; }
+
+.filter-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee;
+}
+.filter-count { font-size: 11px; color: #888; }
+.filter-count b { color: #EE4D2D; }
+
+/* ── Actions ── */
 .actions { display: flex; gap: 6px; margin-bottom: 10px; }
 .actions button { flex: 1; }
 
-.table-wrap {
-    max-height: 210px;
-    overflow-y: auto;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 8px;
-}
+/* ── Table ── */
+.table-wrap { max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; margin-bottom: 8px; }
 table { width: 100%; border-collapse: collapse; font-size: 11px; }
 thead th {
-    background: #f5f5f5;
-    padding: 5px 6px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-    position: sticky;
-    top: 0;
-    font-size: 11px;
-    color: #555;
+    background: #f5f5f5; padding: 5px 6px; text-align: left;
+    border-bottom: 1px solid #e0e0e0; position: sticky; top: 0;
+    font-size: 11px; color: #555;
 }
 tbody td { padding: 4px 6px; border-bottom: 1px solid #f5f5f5; }
 tbody tr:hover td { background: #fff8f6; }
 a { color: #EE4D2D; text-decoration: none; }
 a:hover { text-decoration: underline; }
-
 .empty { text-align: center; color: #aaa; padding: 28px 10px; font-size: 12px; line-height: 1.8; }
 
-.footer { font-size: 10px; color: #bbb; text-align: right; }
+/* ── Debug ── */
+.debug-box {
+    display: none; background: #1e1e1e; color: #d4d4d4;
+    font-family: monospace; font-size: 10px; padding: 8px; border-radius: 4px;
+    max-height: 150px; overflow-y: auto; margin-bottom: 8px;
+    white-space: pre-wrap; word-break: break-all;
+}
+.footer { font-size: 10px; color: #bbb; display: flex; justify-content: space-between; align-items: center; }
 </style>
 </head>
 <body>
@@ -119,36 +120,106 @@ a:hover { text-decoration: underline; }
 </div>
 <div class="body">
 
+    <!-- Scrape controls -->
     <div class="row">
         <input type="text" id="keyword" placeholder="keyword (contoh: sepatu nike)">
-        <input type="number" id="maxPages" value="5" min="1" max="20" title="Jumlah halaman">
+        <input type="number" id="maxPages" value="5" min="1" max="20" style="width:52px" title="Jumlah halaman">
         <button class="btn-primary" id="btnScrape">&#9654; Scrape</button>
-        <button class="btn-stop" id="btnStop" style="display:none">&#9632; Stop</button>
+        <button class="btn-stop"    id="btnStop"   style="display:none">&#9632; Stop</button>
     </div>
 
     <div class="status-bar" id="statusBar"></div>
 
+    <!-- Stats -->
     <div class="stats">
-        <div class="stat">
-            <div class="stat-num" id="countTotal">0</div>
-            <div class="stat-label">Total Produk</div>
+        <div class="stat"><div class="stat-num" id="countTotal">0</div><div class="stat-label">Total</div></div>
+        <div class="stat"><div class="stat-num" id="countFiltered">0</div><div class="stat-label">Terfilter</div></div>
+        <div class="stat"><div class="stat-num" id="countKeywords">0</div><div class="stat-label">Keyword</div></div>
+        <div class="stat"><div class="stat-num" id="countNew">0</div><div class="stat-label">Sesi Ini</div></div>
+    </div>
+
+    <!-- Filter panel toggle -->
+    <div class="filter-toggle" id="filterToggle">
+        <span class="filter-toggle-label">&#9663; Filter &amp; Affiliate<span id="filterBadge" style="font-weight:normal;font-size:11px"></span></span>
+        <span class="filter-toggle-arrow" id="filterArrow">&#9654;</span>
+    </div>
+
+    <div class="filter-panel" id="filterPanel">
+        <!-- Row 1: Nama Produk, Nama Toko & Lokasi -->
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label>Nama Produk</label>
+                <input type="text" id="fName" placeholder="cari nama...">
+            </div>
+            <div class="filter-group">
+                <label>Nama Toko</label>
+                <input type="text" id="fShop" placeholder="cari toko...">
+            </div>
         </div>
-        <div class="stat">
-            <div class="stat-num" id="countKeywords">0</div>
-            <div class="stat-label">Keyword</div>
+        <div class="filter-group" style="margin-bottom:6px">
+            <label>Lokasi Toko</label>
+            <input type="text" id="fLocation" placeholder="cari lokasi...">
         </div>
-        <div class="stat">
-            <div class="stat-num" id="countNew">0</div>
-            <div class="stat-label">Sesi Ini</div>
+
+        <!-- Row 2: Harga -->
+        <div class="filter-group" style="margin-bottom:6px">
+            <label>Harga (Rp)</label>
+            <div class="filter-range">
+                <input type="number" id="fPriceMin" placeholder="min" min="0">
+                <span>—</span>
+                <input type="number" id="fPriceMax" placeholder="max" min="0">
+            </div>
+        </div>
+
+        <!-- Row 3: Rating, Terjual, Disukai -->
+        <div class="filter-row3">
+            <div class="filter-group">
+                <label>Rating min</label>
+                <input type="number" id="fRating" placeholder="0" min="0" max="5" step="0.1">
+            </div>
+            <div class="filter-group">
+                <label>Terjual min</label>
+                <input type="number" id="fSold" placeholder="0" min="0">
+            </div>
+            <div class="filter-group">
+                <label>Disukai min</label>
+                <input type="number" id="fLiked" placeholder="0" min="0">
+            </div>
+        </div>
+
+        <!-- Row 4: Keyword -->
+        <div class="filter-group" style="margin-bottom:0">
+            <label>Keyword</label>
+            <input type="text" id="fKeyword" placeholder="filter keyword...">
+        </div>
+
+        <!-- Affiliate -->
+        <div class="affiliate-box">
+            <label>Shopee Affiliate ID (af_id) — dikosongkan jika tidak pakai</label>
+            <input type="text" id="affiliateId" placeholder="contoh: your_affiliate_id">
+        </div>
+
+        <!-- Google Sheets export -->
+        <div class="affiliate-box">
+            <label>Google Sheet ID — untuk ekspor ke Google Sheets</label>
+            <input type="text" id="sheetId" placeholder="contoh: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+        </div>
+
+        <div class="filter-footer">
+            <span class="filter-count">Menampilkan <b id="filteredCount">0</b> dari <b id="totalCount">0</b> produk</span>
+            <button class="btn-sm" id="btnResetFilter">Reset Filter</button>
         </div>
     </div>
 
+    <!-- Action buttons -->
     <div class="actions">
-        <button class="btn-secondary" id="btnDownload">&#8659; Download CSV</button>
-        <button class="btn-danger" id="btnClear">Hapus Semua</button>
+        <button class="btn-secondary" id="btnDownload">&#8659; Download .xlsx</button>
+        <button class="btn-secondary" id="btnSheets">&#8679; Export ke Sheets</button>
+        <button class="btn-danger"    id="btnClear">Hapus Semua</button>
     </div>
 
-    <div class="table-wrap" id="tableWrap">
+    <!-- Table -->
+    <div class="table-wrap">
         <div class="empty" id="emptyState">
             Belum ada data.<br>
             Buka Shopee &rarr; masukkan keyword &rarr; klik <b>Scrape</b>.
@@ -157,6 +228,7 @@ a:hover { text-decoration: underline; }
             <thead>
                 <tr>
                     <th>Nama Produk</th>
+                    <th>Nama Toko</th>
                     <th>Harga Min</th>
                     <th>Rating</th>
                     <th>Terjual</th>
@@ -167,8 +239,14 @@ a:hover { text-decoration: underline; }
         </table>
     </div>
 
-    <div class="footer">Data disimpan di browser &bull; CSV berisi semua produk</div>
+    <div class="debug-box" id="debugBox"></div>
+
+    <div class="footer">
+        <button class="btn-sm" id="btnDebug">&#128269; Debug API</button>
+        <span>Data disimpan di browser</span>
+    </div>
 </div>
+<script src="xlsx-builder.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>
