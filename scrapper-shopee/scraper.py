@@ -1,5 +1,6 @@
 import asyncio
 import random
+import urllib.parse
 from datetime import datetime
 from typing import Callable, Optional
 from playwright.async_api import async_playwright, Page, Response
@@ -7,6 +8,38 @@ from playwright.async_api import async_playwright, Page, Response
 
 SEARCH_API_PATTERN = "/api/v4/search/search_items"
 SHOPEE_BASE = "https://shopee.co.id"
+
+# Injected before any page script runs — hides Playwright/headless signals
+_STEALTH_SCRIPT = """
+    // Remove the most-checked automation flag
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+    // Provide a believable chrome runtime object
+    window.chrome = { runtime: {}, app: { isInstalled: false }, webstore: {} };
+
+    // Non-empty plugins list (headless has 0)
+    Object.defineProperty(navigator, 'plugins', {
+        get: () => { const a = [1, 2, 3]; a.item = () => null; return a; }
+    });
+
+    // Realistic language list
+    Object.defineProperty(navigator, 'languages', {
+        get: () => ['id-ID', 'id', 'en-US', 'en']
+    });
+
+    // Realistic hardware values (headless often reports 0)
+    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+    Object.defineProperty(navigator, 'deviceMemory',        { get: () => 8 });
+
+    // Fix notification permission check that some bot-detectors use
+    if (navigator.permissions && navigator.permissions.query) {
+        const _orig = navigator.permissions.query.bind(navigator.permissions);
+        navigator.permissions.query = (p) =>
+            p.name === 'notifications'
+                ? Promise.resolve({ state: 'prompt', onchange: null })
+                : _orig(p);
+    }
+"""
 
 
 def _parse_item(item: dict, keyword: str) -> dict:
@@ -79,11 +112,18 @@ async def scrape_keyword(
         url = response.url
         if SEARCH_API_PATTERN in url:
             api_responses_seen.append(url)
-            log(f"  [API] Intercepted — status {response.status} — {url[:100]}")
+            log(f"  [API] Intercepted — status {response.status}")
             try:
                 data = await response.json()
                 top_keys = list(data.keys())
                 log(f"  [DATA] Response keys: {top_keys}")
+
+                # Detect bot-block: Shopee returns numeric keys like {'0':..,'error':..} when blocked
+                if "items" not in data:
+                    log(f"  [WARN] 'items' key missing — likely bot-detected or rate-limited")
+                    if "error" in data:
+                        log(f"  [WARN] error value: {str(data.get('error'))[:120]}")
+                    return
 
                 items = data.get("items", [])
                 log(f"  [ITEMS] Items in response: {len(items)}")
@@ -106,37 +146,59 @@ async def scrape_keyword(
                     log(f"  [WARN] Sample item keys: {list(sample.keys())[:15]}")
 
             except Exception as e:
-                log(f"  [ERR] Failed to parse JSON response: {e}")
-        else:
-            if any(kw in url for kw in ["search", "api", "shopee"]):
-                log(f"  [OTHER] {url[:80]}")
+                log(f"  [ERR] Failed to parse response: {e}")
+        elif "verify/traffic" in url:
+            log(f"  [BLOCK] Bot-check page detected: {url[:100]}")
+        elif any(x in url for x in ["/api/v4/", "shopeemobile"]):
+            log(f"  [OTHER] {url[:90]}")
 
     log(f"[START] Scraper started — keyword='{keyword}', max_pages={max_pages}")
 
     async with async_playwright() as pw:
         log("[BROWSER] Launching Chromium (headless)...")
-        browser = await pw.chromium.launch(headless=True)
+        browser = await pw.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+            ],
+        )
         context = await browser.new_context(
             locale="id-ID",
-            extra_http_headers={"Accept-Language": "id-ID,id;q=0.9,en;q=0.8"},
+            timezone_id="Asia/Jakarta",
+            viewport={"width": 1366, "height": 768},
+            extra_http_headers={"Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7"},
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/124.0.0.0 Safari/537.36"
             ),
         )
+
+        # Inject stealth patches before any page script runs
+        await context.add_init_script(_STEALTH_SCRIPT)
+
         page = await context.new_page()
         page.on("response", handle_response)
-        log("[OK] Browser ready, response listener attached")
+        log("[OK] Browser ready with stealth patches applied")
+
+        # Warm up: visit homepage first to get cookies and look human
+        log("[WARMUP] Visiting homepage to establish session...")
+        try:
+            await page.goto(SHOPEE_BASE, wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(random.uniform(1.5, 2.5))
+            log("[OK] Homepage loaded — cookies established")
+        except Exception as e:
+            log(f"[WARN] Homepage warmup failed (continuing anyway): {e}")
+
+        kw_encoded = urllib.parse.quote_plus(keyword)
 
         for page_num in range(max_pages):
             intercepted.clear()
             api_responses_seen.clear()
             offset = page_num * 60
-            url = (
-                f"{SHOPEE_BASE}/search?keyword={keyword}"
-                f"&page={page_num}&newest={offset}"
-            )
+            url = f"{SHOPEE_BASE}/search?keyword={kw_encoded}&page={page_num}&newest={offset}"
 
             log(f"\n--- Halaman {page_num + 1}/{max_pages} ---")
             log(f"[PAGE] Navigating to: {url}")
@@ -153,18 +215,19 @@ async def scrape_keyword(
             log("[SCROLL] Scrolling page...")
             await _scroll_page(page)
 
-            log("[WAIT] Waiting 2s for deferred API responses...")
-            await asyncio.sleep(2.0)
+            log("[WAIT] Waiting 3s for API responses...")
+            await asyncio.sleep(3.0)
 
             if not api_responses_seen:
                 log("[WARN] No API response intercepted on this page!")
-                log(f"       Expected URL pattern: ...{SEARCH_API_PATTERN}...")
+            elif not intercepted:
+                log("[WARN] API was called but returned 0 usable products")
 
             if intercepted:
                 seen_ids = {p["item_id"] for p in all_products}
                 new_items = [p for p in intercepted if p["item_id"] not in seen_ids]
                 all_products.extend(new_items)
-                log(f"[RESULT] Page: {len(intercepted)} items, {len(new_items)} new, {len(intercepted)-len(new_items)} dup")
+                log(f"[RESULT] {len(intercepted)} items, {len(new_items)} new, {len(intercepted)-len(new_items)} dup")
             else:
                 log("[WARN] No products collected from this page")
 
@@ -178,7 +241,7 @@ async def scrape_keyword(
                 log(f"[DELAY] Waiting {delay}s before next page...")
                 await asyncio.sleep(delay)
 
-        log(f"\n[DONE] Scraping finished — total {len(all_products)} products collected")
+        log(f"\n[DONE] Scraping finished — total {len(all_products)} products")
         await browser.close()
         log("[OK] Browser closed")
 
