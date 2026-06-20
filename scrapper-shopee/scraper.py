@@ -79,14 +79,14 @@ async def scrape_keyword(
         url = response.url
         if SEARCH_API_PATTERN in url:
             api_responses_seen.append(url)
-            log(f"  ✅ API intercepted — status {response.status} — {url[:100]}")
+            log(f"  [API] Intercepted — status {response.status} — {url[:100]}")
             try:
                 data = await response.json()
                 top_keys = list(data.keys())
-                log(f"  📦 Response keys: {top_keys}")
+                log(f"  [DATA] Response keys: {top_keys}")
 
                 items = data.get("items", [])
-                log(f"  📋 Items in response: {len(items)}")
+                log(f"  [ITEMS] Items in response: {len(items)}")
 
                 parsed_count = 0
                 skip_count = 0
@@ -99,24 +99,22 @@ async def scrape_keyword(
                     else:
                         skip_count += 1
 
-                log(f"  ✔  Parsed OK: {parsed_count} | Skipped (no item_id): {skip_count}")
+                log(f"  [OK] Parsed: {parsed_count} | Skipped (no item_id): {skip_count}")
 
                 if items and parsed_count == 0:
-                    # Help debug key names in the raw item
                     sample = items[0].get("item", items[0])
-                    log(f"  ⚠️  Sample item keys: {list(sample.keys())[:15]}")
+                    log(f"  [WARN] Sample item keys: {list(sample.keys())[:15]}")
 
             except Exception as e:
-                log(f"  ❌ Failed to parse JSON response: {e}")
+                log(f"  [ERR] Failed to parse JSON response: {e}")
         else:
-            # Log first non-API response URLs briefly (for pattern discovery)
             if any(kw in url for kw in ["search", "api", "shopee"]):
-                log(f"  ↳ Other response: {url[:80]}")
+                log(f"  [OTHER] {url[:80]}")
 
-    log(f"🚀 Starting scraper — keyword='{keyword}', max_pages={max_pages}")
+    log(f"[START] Scraper started — keyword='{keyword}', max_pages={max_pages}")
 
     async with async_playwright() as pw:
-        log("🌐 Launching Chromium browser (headless)...")
+        log("[BROWSER] Launching Chromium (headless)...")
         browser = await pw.chromium.launch(headless=True)
         context = await browser.new_context(
             locale="id-ID",
@@ -129,7 +127,7 @@ async def scrape_keyword(
         )
         page = await context.new_page()
         page.on("response", handle_response)
-        log("✔  Browser ready, response listener attached")
+        log("[OK] Browser ready, response listener attached")
 
         for page_num in range(max_pages):
             intercepted.clear()
@@ -140,48 +138,48 @@ async def scrape_keyword(
                 f"&page={page_num}&newest={offset}"
             )
 
-            log(f"\n─── Halaman {page_num + 1}/{max_pages} ───")
-            log(f"📄 Navigating to: {url}")
+            log(f"\n--- Halaman {page_num + 1}/{max_pages} ---")
+            log(f"[PAGE] Navigating to: {url}")
 
             try:
                 resp = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                log(f"✔  Page loaded — HTTP {resp.status if resp else 'N/A'}")
+                log(f"[OK] Page loaded — HTTP {resp.status if resp else 'N/A'}")
             except Exception as e:
-                log(f"❌ Navigation failed: {e}")
+                log(f"[ERR] Navigation failed: {e}")
                 if progress_callback:
                     progress_callback(page_num + 1, max_pages, len(all_products))
                 break
 
-            log("🖱  Scrolling page...")
+            log("[SCROLL] Scrolling page...")
             await _scroll_page(page)
 
-            log("⏳ Waiting 2s for deferred API responses...")
+            log("[WAIT] Waiting 2s for deferred API responses...")
             await asyncio.sleep(2.0)
 
             if not api_responses_seen:
-                log("⚠️  No API response intercepted on this page!")
-                log(f"    Expected URL pattern: ...{SEARCH_API_PATTERN}...")
+                log("[WARN] No API response intercepted on this page!")
+                log(f"       Expected URL pattern: ...{SEARCH_API_PATTERN}...")
 
             if intercepted:
                 seen_ids = {p["item_id"] for p in all_products}
                 new_items = [p for p in intercepted if p["item_id"] not in seen_ids]
                 all_products.extend(new_items)
-                log(f"📊 Page result: {len(intercepted)} items, {len(new_items)} new, {len(intercepted)-len(new_items)} dup")
+                log(f"[RESULT] Page: {len(intercepted)} items, {len(new_items)} new, {len(intercepted)-len(new_items)} dup")
             else:
-                log("⚠️  No products collected from this page")
+                log("[WARN] No products collected from this page")
 
-            log(f"📈 Running total: {len(all_products)} products")
+            log(f"[TOTAL] Running total: {len(all_products)} products")
 
             if progress_callback:
                 progress_callback(page_num + 1, max_pages, len(all_products))
 
             if page_num < max_pages - 1:
                 delay = round(random.uniform(2.5, 5.0), 1)
-                log(f"⏸  Waiting {delay}s before next page...")
+                log(f"[DELAY] Waiting {delay}s before next page...")
                 await asyncio.sleep(delay)
 
-        log(f"\n🏁 Scraping done — total {len(all_products)} products collected")
+        log(f"\n[DONE] Scraping finished — total {len(all_products)} products collected")
         await browser.close()
-        log("✔  Browser closed")
+        log("[OK] Browser closed")
 
     return all_products
