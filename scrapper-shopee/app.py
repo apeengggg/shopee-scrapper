@@ -1,11 +1,15 @@
 import asyncio
+import importlib
 import os
 import pandas as pd
 import streamlit as st
 
+import scraper as _scraper_mod
+importlib.reload(_scraper_mod)
+from scraper import scrape_keyword
+
 from database import init_db, insert_products, get_products
 from exporter import export_to_excel
-from scraper import scrape_keyword
 
 init_db()
 
