@@ -6,7 +6,7 @@ import streamlit as st
 
 import scraper as _scraper_mod
 importlib.reload(_scraper_mod)
-from scraper import scrape_keyword
+from scraper import scrape_keyword, save_session, SESSION_FILE
 
 from database import init_db, insert_products, get_products
 from exporter import export_to_excel
@@ -45,6 +45,26 @@ st.markdown("""
 
 # ── Sidebar filters ──────────────────────────────────────────────────────────
 with st.sidebar:
+    st.markdown("## Akun Shopee")
+    session_exists = os.path.exists(SESSION_FILE)
+    if session_exists:
+        st.success("Session aktif - sudah login")
+        if st.button("Hapus Session (Logout)"):
+            os.remove(SESSION_FILE)
+            st.rerun()
+    else:
+        st.warning("Belum login - scraping mungkin diblok")
+        if st.button("Login ke Shopee"):
+            login_logs: list[str] = []
+            with st.spinner("Membuka browser untuk login... Tutup browser setelah selesai login."):
+                asyncio.run(save_session(log_callback=login_logs.append))
+            if os.path.exists(SESSION_FILE):
+                st.success("Login berhasil! Session tersimpan.")
+                st.rerun()
+            else:
+                st.error("Login gagal. Coba lagi.")
+    st.divider()
+
     st.markdown("## 🔧 Filter")
 
     st.markdown("**Harga (IDR)**")
