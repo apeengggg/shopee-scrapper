@@ -64,7 +64,7 @@ async def _scroll_page(page: Page):
 
 async def _make_context(pw, log: callable) -> "BrowserContext":
     browser = await pw.chromium.launch(
-        headless=True,
+        headless=False,
         args=[
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
@@ -212,7 +212,7 @@ async def scrape_keyword(
     log(f"[START] Scraper started - keyword='{keyword}', max_pages={max_pages}")
 
     async with async_playwright() as pw:
-        log("[BROWSER] Launching Chromium with stealth patches...")
+        log("[BROWSER] Launching Chromium (headed mode - a browser window will open)...")
         browser, context = await _make_context(pw, log)
 
         page = await context.new_page()
@@ -220,17 +220,6 @@ async def scrape_keyword(
         await _stealth.apply_stealth_async(page)
         page.on("response", _on_response)
         log("[OK] Browser ready with playwright-stealth applied")
-
-        # Warmup
-        log("[WARMUP] Loading homepage (networkidle)...")
-        try:
-            await page.goto(SHOPEE_BASE, wait_until="networkidle", timeout=40000)
-            wait_s = round(random.uniform(3.0, 5.0), 1)
-            log(f"[WARMUP] Idle. Waiting {wait_s}s for session cookies to mature...")
-            await asyncio.sleep(wait_s)
-            log("[OK] Warmup done")
-        except Exception as e:
-            log(f"[WARN] Warmup failed ({e}), continuing...")
 
         kw_encoded = urllib.parse.quote_plus(keyword)
 

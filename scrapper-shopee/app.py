@@ -115,7 +115,8 @@ if start_btn and keyword.strip():
     def on_log(msg: str):
         log_lines.append(msg)
 
-    with st.spinner(f'Scraping "{kw}"...'):
+    st.info("Browser Chromium akan terbuka secara otomatis. Biarkan terbuka sampai scraping selesai.")
+    with st.spinner(f'Scraping "{kw}" (browser Chromium sedang berjalan)...'):
         products = asyncio.run(
             scrape_keyword(
                 kw,
